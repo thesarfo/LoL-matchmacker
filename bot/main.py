@@ -23,4 +23,32 @@ class MatchMaker(Client):
                 if player[0] != len(self.playing_list) else '{}. {}'.format(*player)
         await message.channel.send(output_string)
 
-    
+    def refresh_players(self):
+        self.players = load_json().get("players")
+
+    async def on_ready(self):
+        print(f"Logged on as {self.user}!")
+
+    async def on_message(self, message):
+        # we do not want the bot to reply to itself
+        if message.author.id == self.user.id:
+            return
+
+        content = message.content
+        author_id = str(message.author.id)
+        match content.split():
+            case ["!ping"]:
+                await message.channel.send("pong")
+            case ["!reset"]:
+                self.playing_list = []
+                self.playing_list_ids = {}
+            case ["!playlist"]:
+                await self.send_ready_list(message)
+            case ["!register", *summoner]:
+                summoner = " ".join(summoner)
+                register_player(summoner, author_id)
+                self.refresh_players()
+                await message.channel.send(
+                    f"Username '{summoner}' successfully registered, tied to {message.author.name}"
+                )
+            
