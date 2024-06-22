@@ -39,3 +39,42 @@ async def draw(mid_point: float, list_ranked_summoners: list[tuple[str, int]]) -
         'players': [summoner[0] for summoner in list_ranked_summoners]
     }
     return blue_team, red_team
+
+async def balance(
+    summoners: list[str],
+) -> tuple[dict[str, int | list], dict[str, int | list], dict[str, str]]:
+    tasks = []
+    mid_point = 0
+    draws = 0
+    json = load_json()
+    if not json.get("last_refresh"):
+        build_id = await get_build_id()
+        update_build_id(build_id)
+    else:
+        if default_timer() - json.get("last_refresh") > refresh_interval:
+            build_id = await get_build_id()
+            update_build_id(build_id)
+        else:
+            build_id = json.get("build_id")
+    for summoner in summoners:
+        tasks.append(get_rank(summoner, build_id))
+    results = await gather(*tasks)
+    mapped_results = {result[0]: result[1] for result in results}
+    shuffled_summoners = sample(summoners, 10)
+    ranked_summoners = {
+        summoner: points.get(mapped_results.get(summoner))
+        for summoner in shuffled_summoners
+    }
+    for summoner, evaluation in ranked_summoners.items():
+        mid_point += evaluation
+    mid_point /= 2
+    list_ranked_summoners = list(ranked_summoners.items())
+    blue_team, red_team = await draw(mid_point, deepcopy(list_ranked_summoners))
+    draws += 1
+    initial_threshold = threshold
+    while abs(blue_team.get("score") - red_team.get("score")) > initial_threshold:
+        blue_team, red_team = await draw(mid_point, deepcopy(list_ranked_summoners))
+        draws += 1
+        if draws >= 1000:
+            initial_threshold += 1
+    return blue_team, red_team, mapped_results
