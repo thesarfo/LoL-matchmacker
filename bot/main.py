@@ -14,13 +14,16 @@ class MatchMaker(Client):
         super().__init__(intents=intents, **options)
         self.playing_list = []
         self.playing_list_ids = {}
-        self.players = load_json().get('players')
+        self.players = load_json().get("players")
 
     async def send_ready_list(self, message):
-        output_string = 'Ready to play: \n'
+        output_string = "Ready to play: \n"
         for player in enumerate(self.playing_list, start=1):
-            output_string += '{}. {}\n'.format(*player) \
-                if player[0] != len(self.playing_list) else '{}. {}'.format(*player)
+            output_string += (
+                "{}. {}\n".format(*player)
+                if player[0] != len(self.playing_list)
+                else "{}. {}".format(*player)
+            )
         await message.channel.send(output_string)
 
     def refresh_players(self):
