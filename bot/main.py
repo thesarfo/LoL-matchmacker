@@ -51,4 +51,22 @@ class MatchMaker(Client):
                 await message.channel.send(
                     f"Username '{summoner}' successfully registered, tied to {message.author.name}"
                 )
-            
+            case ["!play"]:
+                if len(self.playing_list) == 10:
+                    await message.channel.send("The lobby is full.")
+                else:
+                    player = self.players.get(author_id)
+                    if not player:
+                        await message.channel.send(
+                            "You are not registered, please register first."
+                        )
+                    if player.get("summoner") not in self.playing_list:
+                        self.playing_list.append(player.get("summoner"))
+                        self.playing_list_ids[player.get("summoner")] = author_id
+                    await self.send_ready_list(message)
+            case ["!remove"]:
+                player = self.players.get(author_id)
+                if player.get("summoner") in self.playing_list:
+                    self.playing_list.remove(player.get("summoner"))
+                    self.playing_list_ids.pop(player.get("summoner"))
+                    await self.send_ready_list(message)
